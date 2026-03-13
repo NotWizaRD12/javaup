@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Task Manager - Boards</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        :root[data-bs-theme="light"] {
+            --bg-color: #f8f9fa;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        }
+        :root[data-bs-theme="dark"] {
+            --bg-color: #121212;
+            --card-bg: rgba(30, 30, 30, 0.85);
+            --gradient: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 100%);
+        }
+        .hero-banner {
+            background: var(--gradient);
+            color: white;
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+        }
+        .board-card {
+            cursor: pointer;
+        }
+        .board-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        .theme-toggle {
+            cursor: pointer;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: inherit;
+            transition: background 0.2s;
+        }
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .board-card-body {
+            position: relative;
+        }
+        .delete-form {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            opacity: 0.2;
+            transition: opacity 0.2s;
+        }
+        .board-card:hover .delete-form {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background: var(--gradient);">
+    <div class="container py-2">
+        <a class="navbar-brand fw-bold fs-4" href="/"><i class="bi bi-kanban me-2"></i>TaskFlow</a>
+        <div class="d-flex align-items-center">
+            <button class="theme-toggle text-white" id="themeToggleBtn" aria-label="Toggle Theme">
+                <i class="bi bi-moon-stars" id="themeIcon"></i>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-5">
+    <!-- Hero / Create Form -->
+    <div class="hero-banner">
+        <div class="row align-items-center">
+            <div class="col-md-7 mb-4 mb-md-0 pe-md-5">
+                <h1 class="display-4 fw-bolder mb-3">Organize Anything, Together.</h1>
+                <p class="lead opacity-75 mb-0">Create spaces for your projects, map out tasks, and integrate external fun facts easily with TaskFlow.</p>
+            </div>
+            <div class="col-md-5">
+                <div class="glass-card p-4 text-body shadow-lg">
+                    <h5 class="mb-4 fw-bold"><i class="bi bi-plus-circle-fill text-primary me-2"></i>Create New Space</h5>
+                    <form th:action="@{/boards}" method="post">
+                        <div class="mb-3">
+                            <input type="text" name="name" class="form-control form-control-lg bg-body text-body" placeholder="Workspace Name" required>
+                        </div>
+                        <div class="mb-4">
+                            <input type="text" name="description" class="form-control bg-body text-body" placeholder="Brief description (optional)">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">Launch Space <i class="bi bi-rocket me-1 ms-1"></i></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Boards Grid -->
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <h3 class="fw-bold mb-0">Your Workspaces</h3>
+        <span class="badge bg-primary rounded-pill py-2 px-3 fs-6" th:text="${boards.size()} + ' active'"></span>
+    </div>
+    
+    <div class="row g-4 mb-5">
+        <div class="col-md-6 col-lg-4" th:each="board : ${boards}">
+            <div class="card h-100 glass-card board-card border-0 board-link-card" th:data-board-id="${board.id}">
+                <div class="card-body d-flex flex-column board-card-body p-4">
+                    <form th:action="@{'/boards/delete/' + ${board.id}}" method="post" class="delete-form m-0" onclick="event.stopPropagation();">
+                        <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle" title="Delete Board"><i class="bi bi-trash"></i></button>
+                    </form>
+                    <div class="mb-3 text-primary fs-1 opacity-50"><i class="bi bi-grid-1x2-fill"></i></div>
+                    <h5 class="card-title fw-bold fs-4 mb-2" th:text="${board.name}"></h5>
+                    <p class="card-text text-muted flex-grow-1" th:text="${board.description}"></p>
+                    <div class="mt-4 text-primary fw-semibold d-flex align-items-center">
+                        Enter Workspace <i class="bi bi-arrow-right ms-2 transition-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Empty State -->
+        <div th:if="${boards.empty}" class="col-12 py-5 text-center">
+            <div class="p-5 glass-card d-inline-block shadow-sm">
+                <i class="bi bi-kanban text-primary opacity-25" style="font-size: 5rem;"></i>
+                <h3 class="fw-bold mt-4">It's pretty empty here</h3>
+                <p class="text-muted">Create your first workspace using the form above to get started.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const htmlElement = document.documentElement;
+
+    function setTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('theme', theme);
+        if (theme === 'dark') {
+            themeIcon.className = 'bi bi-sun-fill text-warning';
+        } else {
+            themeIcon.className = 'bi bi-moon-stars-fill text-white';
+        }
+    }
+
+    // Init theme
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+
+    themeToggleBtn.addEventListener('click', () => {
+        const currentTheme = htmlElement.getAttribute('data-bs-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+    });
+
+    // Handle board card clicks without inline onclick to satisfy CSP
+    document.addEventListener('DOMContentLoaded', () => {
+        const boardCards = document.querySelectorAll('.board-link-card');
+        boardCards.forEach(card => {
+            card.addEventListener('click', function(e) {
+                // Ignore clicks on the delete button form
+                if(e.target.closest('.delete-form')) {
+                    return;
+                }
+                const boardId = this.getAttribute('data-board-id');
+                if(boardId) {
+                    window.location.href = '/boards/' + boardId;
+                }
+            });
+        });
+    });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

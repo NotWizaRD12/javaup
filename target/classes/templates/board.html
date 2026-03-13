@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${board.name} + ' - TaskFlow'">Board View</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color);
+            transition: background 0.3s ease, color 0.3s ease;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        :root[data-bs-theme="light"] {
+            --bg-color: #f3f4f6;
+            --list-bg: #e5e7eb;
+            --card-bg: #ffffff;
+            --gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        }
+        :root[data-bs-theme="dark"] {
+            --bg-color: #121212;
+            --list-bg: #27272a;
+            --card-bg: #3f3f46;
+            --gradient: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 100%);
+        }
+        
+        /* Layout */
+        .board-container {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            /* Scrollbar styling */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(136, 136, 136, 0.5) transparent;
+        }
+        .board-container::-webkit-scrollbar { height: 10px; }
+        .board-container::-webkit-scrollbar-thumb { background: rgba(136, 136, 136, 0.5); border-radius: 5px; }
+
+        /* List & Card */
+        .task-list {
+            display: inline-flex;
+            flex-direction: column;
+            width: 320px;
+            background: var(--list-bg);
+            border-radius: 12px;
+            margin-right: 1.25rem;
+            vertical-align: top;
+            max-height: 100%;
+            padding: 12px;
+            border: 1px solid rgba(128,128,128,0.1);
+        }
+        .task-list-header {
+            padding: 8px 4px 16px 8px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .task-list-cards {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 4px;
+            /* Custom scrollbar */
+            scrollbar-width: thin;
+        }
+        .task-list-cards::-webkit-scrollbar { width: 6px; }
+        .task-list-cards::-webkit-scrollbar-thumb { background: rgba(136, 136, 136, 0.4); border-radius: 4px; }
+
+        .task-card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            white-space: normal;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid rgba(128,128,128,0.1);
+            border-left: 4px solid var(--bs-primary);
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        }
+        
+        .fun-fact-box {
+            background: rgba(var(--bs-primary-rgb), 0.1);
+            color: var(--bs-primary);
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            border-left: 2px solid var(--bs-primary);
+        }
+        
+        .theme-toggle {
+            cursor: pointer;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: inherit;
+            transition: background 0.2s;
+        }
+        .theme-toggle:hover { background: rgba(255, 255, 255, 0.2); }
+
+        .add-list-wrapper {
+            display: inline-block;
+            vertical-align: top;
+            width: 320px;
+            background: var(--list-bg);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid rgba(128,128,128,0.1);
+        }
+        
+        .delete-btn-hover { opacity: 0; transition: opacity 0.2s; }
+        .task-card:hover .delete-btn-hover { opacity: 1; }
+        
+        select.nice-select {
+            appearance: none;
+            background: transparent;
+            border: none;
+            color: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        select.nice-select:focus { outline: none; box-shadow: none; }
+        
+        .add-card-btn {
+            color: var(--bs-body-color);
+            opacity: 0.7;
+            background: transparent;
+            transition: all 0.2s;
+        }
+        .add-card-btn:hover {
+            opacity: 1;
+            background: rgba(128,128,128,0.1);
+        }
+    </style>
+</head>
+<body>
+<!-- Navbar -->
+<nav class="navbar navbar-dark shadow" style="background: var(--gradient); z-index: 10;">
+    <div class="container-fluid px-4 py-1">
+        <div class="d-flex align-items-center">
+            <a href="/" class="btn btn-sm btn-dark text-white border-0 me-3 rounded-pill px-3 shadow-sm fw-semibold" style="background-color: rgba(0,0,0,0.3);">
+                <i class="bi bi-arrow-left me-1"></i> Dashboard
+            </a>
+            <span class="navbar-brand mb-0 h1 fw-bold fs-4">
+                <i class="bi bi-grid-1x2-fill me-2 opacity-75"></i> <span th:text="${board.name}"></span>
+            </span>
+        </div>
+        <div>
+            <button class="theme-toggle text-white" id="themeToggleBtn" aria-label="Toggle Theme">
+                <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- Board Area -->
+<div class="board-container">
+    
+    <!-- Existing Lists -->
+    <div class="task-list shadow-sm" th:each="list : ${board.taskLists}" th:data-list-id="${list.id}">
+        <div class="task-list-header text-body sortable-handle" style="cursor: grab;">
+            <span th:text="${list.name}"></span>
+            <form th:action="@{'/boards/' + ${board.id} + '/lists/' + ${list.id} + '/delete'}" method="post" class="m-0">
+                <button type="submit" class="btn btn-sm text-muted hover-danger border-0 p-1 opacity-50"><i class="bi bi-trash-fill"></i></button>
+            </form>
+        </div>
+        
+        <div class="task-list-cards">
+            <!-- Tasks loop -->
+            <div class="task-card text-body" th:each="task : ${list.tasks}">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <strong th:text="${task.title}" class="text-break fs-6"></strong>
+                    <form th:action="@{'/tasks/' + ${task.id} + '/delete'}" method="post" class="delete-btn-hover">
+                        <input type="hidden" name="boardId" th:value="${board.id}">
+                        <button type="submit" class="btn btn-sm text-danger p-0 ms-2"><i class="bi bi-x-circle-fill"></i></button>
+                    </form>
+                </div>
+                <div class="text-secondary small mb-3 opacity-75 text-break" th:text="${task.description}"></div>
+                
+                <!-- Fun Fact -->
+                <div th:if="${task.funFact != null}" class="fun-fact-box fw-semibold">
+                    <i class="bi bi-lightbulb-fill me-1"></i> <span th:text="${task.funFact}"></span>
+                </div>
+
+                <!-- Move Task Dropdown -->
+                <div class="mt-3 pt-3 border-top border-secondary-subtle">
+                    <form th:action="@{'/tasks/' + ${task.id} + '/move'}" method="post" class="d-flex align-items-center rounded bg-body p-1 move-task-form">
+                        <input type="hidden" name="boardId" th:value="${board.id}">
+                        <i class="bi bi-arrows-move text-muted mx-2 small"></i>
+                        <select name="newListId" class="form-select form-select-sm nice-select px-1 w-100 move-task-select">
+                            <option value="">Move to list...</option>
+                            <option th:each="otherList : ${board.taskLists}"
+                                    th:value="${otherList.id}"
+                                    th:text="${otherList.name}"
+                                    th:if="${otherList.id != list.id}"></option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Add Task form / button -->
+            <div class="mt-2">
+                <a class="text-decoration-none fw-semibold d-block p-2 rounded add-card-btn text-center" data-bs-toggle="collapse" th:href="'#addTask-' + ${list.id}">
+                    <i class="bi bi-plus-lg me-1"></i> Add a card
+                </a>
+            </div>
+            <div class="collapse mt-2" th:id="'addTask-' + ${list.id}">
+                <div class="card card-body p-3 border-0 shadow-sm bg-body">
+                    <form th:action="@{/tasks}" method="post">
+                        <input type="hidden" name="boardId" th:value="${board.id}">
+                        <input type="hidden" name="taskListId" th:value="${list.id}">
+                        <input type="text" name="title" class="form-control mb-2 bg-transparent text-body border-secondary-subtle" placeholder="Task Title" required>
+                        <textarea name="description" class="form-control mb-3 bg-transparent text-body border-secondary-subtle" placeholder="Task Description" rows="2"></textarea>
+                        <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm">Save Card</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New List Column -->
+    <div class="add-list-wrapper shadow-sm">
+        <form th:action="@{'/boards/' + ${board.id} + '/lists'}" method="post">
+            <div class="input-group">
+                <input type="text" name="name" class="form-control bg-body text-body border-0 shadow-none ps-3 py-2 fw-semibold" placeholder="+ Add another list" required>
+                <button type="submit" class="btn btn-primary px-3 shadow-sm"><i class="bi bi-plus-lg"></i></button>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<script>
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const htmlElement = document.documentElement;
+
+    function setTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('theme', theme);
+        if (theme === 'dark') {
+            themeIcon.className = 'bi bi-sun-fill text-warning';
+        } else {
+            themeIcon.className = 'bi bi-moon-stars-fill text-white';
+        }
+    }
+
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+
+    themeToggleBtn.addEventListener('click', () => {
+        const currentTheme = htmlElement.getAttribute('data-bs-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+    });
+
+    // Handle Task Moving without inline onchange
+    document.addEventListener('DOMContentLoaded', () => {
+        const selects = document.querySelectorAll('.move-task-select');
+        selects.forEach(select => {
+            select.addEventListener('change', function() {
+                if(this.value) {
+                    this.closest('form').submit();
+                }
+            });
+        });
+    });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', () => {
+        const boardId = /*[[${board.id}]]*/ 0;
+        const boardContainer = document.querySelector('.board-container');
+        if(boardContainer) {
+            new Sortable(boardContainer, {
+                animation: 150,
+                handle: '.sortable-handle',
+                draggable: '.task-list',
+                ghostClass: 'opacity-50',
+                onEnd: function (evt) {
+                    const listElements = boardContainer.querySelectorAll('.task-list');
+                    const orderedIds = Array.from(listElements).map(el => el.getAttribute('data-list-id'));
+                    fetch(`/boards/${boardId}/lists/reorder`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(orderedIds)
+                    }).catch(error => console.error('Error reordering lists:', error));
+                }
+            });
+        }
+    });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
