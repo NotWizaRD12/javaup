@@ -6,6 +6,7 @@
 
 **Task Manager (Mini Trello)** is a web application for organizing workflows, creating boards, lists, and dragging tasks between them. 
 Designed with a modern Glassmorphism UI and a functional Drag-and-Drop capability.
+RAILWAY TEST HOST(TRIAL) [javaup-production.up.railway.app](https://javaup-production.up.railway.app)
 
 ---
 
